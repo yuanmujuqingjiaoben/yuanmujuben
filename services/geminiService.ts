@@ -2,13 +2,11 @@
 import { GoogleGenAI } from "@google/genai";
 
 /**
- * 抗 AI 检测协议 (De-AI Protocol):
- * 1. 禁用逻辑连接词：屏蔽“总而言之、然而、这意味着、随着...”等 AI 习惯性转场。
- * 2. 引入叙事熵值：通过改变句子长度和结构，打破 AI 的平滑感。
- * 3. 词汇降级与特化：用具体的、俚语化的词汇代替抽象的、宏大的 AI 词汇。
+ * 指向性保护协议 (Directional Protection Protocol):
+ * 1. 严格标签隔离：使用 XML 风格标签包裹不同性质的输入。
+ * 2. 职责唯一性：明确原著是剧情的唯一来源，参考文件禁止贡献任何情节。
  */
 
-// 初始化 Gemini API
 export const generateStoryOutline = async (
   originalText: string,
   layoutRefText: string,
@@ -18,32 +16,39 @@ export const generateStoryOutline = async (
   const model = 'gemini-3-pro-preview';
   
   const prompt = `
-    任务：创作一份 2000 - 3000 字的漫剧深度大纲。
-    要求：**极高的人类叙事质感，彻底摆脱 AI 机械感。**
+    你现在是一名专业的漫剧总编剧。你的任务是基于【原著小说内容】创作大纲。
+    
+    【输入指令 - 优先级声明】：
+    1. <ORIGINAL_NOVEL> 标签内是【唯一剧情来源】。严禁从其他标签中提取任何人物、背景或事件。
+    2. <STYLE_REFERENCE> 标签内仅用于【词汇与语气参考】。
+    3. <LAYOUT_TEMPLATE> 标签内仅用于【排版符号参考】。
 
-    【抗 AI 检测指令】：
-    - **禁止宏大叙事**：不要用“这是一场关于...的较量”这种开场。直接切入具体的矛盾、具体的人、具体的物。
-    - **句式突变**：长短句交错。用一个 5 字以内的短句紧接一个 30 字以上的长句，模拟人类的情绪波动。
-    - **禁用逻辑词**：严禁出现“由于、结果、显而易见、不得不说”这类逻辑连接词，用动作的先后顺序自然驱动剧情。
-    - **词汇新鲜度**：避开 AI 常用词（如：羁绊、救赎、蜕变、绽放）。用更接地气、更有痛感的动词。
+    <ORIGINAL_NOVEL>
+    ${originalText}
+    </ORIGINAL_NOVEL>
 
-    【排版指纹】：
-    - 分析参考文件符号：${layoutRefText || '标准格式'}
-    - 严禁任何 Markdown 标记。
+    <STYLE_REFERENCE>
+    ${styleRefText || '无特定的文笔参考，请保持人类化的爽剧叙事感。'}
+    </STYLE_REFERENCE>
 
-    核心目标：
-    1. 【总集数建议】：第一行给出（60-80集）。
-    2. 【文笔参考】：${styleRefText}
-    3. 【原著精髓】：${originalText.substring(0, 8000)}
+    <LAYOUT_TEMPLATE>
+    ${layoutRefText || '无特定排版模版。'}
+    </LAYOUT_TEMPLATE>
 
-    输出：纯文本，拒绝 AI 腔调。
+    【创作要求】：
+    - **逻辑溯源**：确保大纲中的每一个冲突和人物动机都直接源自 <ORIGINAL_NOVEL>。
+    - **视觉克隆**：如果 <LAYOUT_TEMPLATE> 中使用了特殊的括号（如【】）或分段标记，请在输出中完整复刻。
+    - **抗AI干扰**：保持语言的熵值，避免使用 AI 常用连接词（如“然而”、“因此”）。
+    - **输出目标**：第一行建议集数（60-80集），后续为 2000-3000 字的深度大纲。
+
+    请开始分析并生成。
   `;
 
   const response = await ai.models.generateContent({
     model,
     contents: prompt,
     config: {
-      temperature: 0.9, // 调高温度增加随机性
+      temperature: 0.85,
       thinkingConfig: { thinkingBudget: 4000 }
     }
   });
@@ -65,37 +70,49 @@ export const generateScriptSegment = async (
 
   const startEp = (batchIndex - 1) * 3 + 1;
   const endEp = batchIndex * 3;
-  const contextHistory = previousScripts ? previousScripts.substring(previousScripts.length - 12000) : '这是开篇第一段';
+  const contextHistory = previousScripts ? previousScripts.substring(previousScripts.length - 12000) : '无往期脚本';
 
   const prompt = `
     任务：编写动漫脚本 第 ${startEp} - ${endEp} 集。
-    当前频道：${mode === 'male' ? '男频' : '女频'}
-    
-    【核心：去AI化书写（DE-AI PROTOCOL）】：
-    1. **拒绝匀速感**：AI 喜欢平稳叙事。你要学会“留白”和“突进”。
-    2. **动作切片化**：不要写“他愤怒地走进屋子”，要写“门被撞在墙上。他靴子踩在碎玻璃上，咯吱响。眼神像刀子。”
-    3. **屏蔽 AI 转场词**：禁止出现“突然间”、“紧接着”、“说时迟那时快”、“与此同时”。直接切换场景描写。
-    4. **标点个性化**：根据情绪使用省略号和破折号。不要每一句都是标准的“主谓宾+句号”。
-    5. **词汇避雷针**：严禁使用“那一刻、空气似乎、命运的轮盘、无声的抗议、眸子里闪过...”这类 AI 常用陈词滥调。
+    频道：${mode === 'male' ? '男频' : '女频'}
 
-    【上下文无缝衔接】：
-    - 严格承接上一段结尾状态：${contextHistory.substring(contextHistory.length - 2000)}
-    - 确保第 ${startEp} 集开头就是上一秒的延续。
+    【输入隔离与职责（严格执行）】：
+    - <ORIGINAL_SOURCE>：提供本集的核心细节。
+    - <STORY_OUTLINE>：提供剧情走向框架。
+    - <PREVIOUS_CONTEXT>：提供上下文衔接状态，第 ${startEp} 集开头必须与此内容末尾无缝连接。
+    - <STYLE_AND_LAYOUT>：仅提供文笔韵味和排版格式参考，禁止从中提取剧情！
 
-    【排版与文笔指纹】：
-    - 格式模版：${layoutRefText}
-    - 文笔风格：${styleRefText}
-    - 原著核心：${originalText.substring(0, 8000)}
-    - 剧情大纲：${outlineText.substring(0, 3000)}
+    <ORIGINAL_SOURCE>
+    ${originalText.substring(0, 10000)}
+    </ORIGINAL_SOURCE>
 
-    输出：中文纯文本。追求极致的爽感与人类书写的灵动感，彻底通过 AI 检测。
+    <STORY_OUTLINE>
+    ${outlineText}
+    </STORY_OUTLINE>
+
+    <PREVIOUS_CONTEXT>
+    ${contextHistory}
+    </PREVIOUS_CONTEXT>
+
+    <STYLE_AND_LAYOUT>
+    文笔风格：${styleRefText}
+    排版模版：${layoutRefText}
+    </STYLE_AND_LAYOUT>
+
+    【脚本生成准则】：
+    1. **上下文锚定**：分析 <PREVIOUS_CONTEXT> 最后一段的动作和对白，确保第 ${startEp} 集第一秒钟就是其后续。
+    2. **剧情忠诚度**：所有台词和动作逻辑必须直接基于 <ORIGINAL_SOURCE>。
+    3. **去AI痕迹**：禁止使用“随着时间的推移”、“他意识到”等描述性废话。多用动词，少用副词。
+    4. **物理指纹**：严格复刻 <STYLE_AND_LAYOUT> 中的所有符号特征。
+
+    输出中文纯文本脚本。
   `;
 
   const response = await ai.models.generateContent({
     model,
     contents: prompt,
     config: {
-      temperature: 0.9, // 高温有助于产生更独特的词汇组合
+      temperature: 0.9,
       topP: 0.95,
       thinkingConfig: { thinkingBudget: 5000 }
     }
