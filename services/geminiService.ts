@@ -87,48 +87,35 @@ export const generateScriptSegment = async (
     任务：编写动漫脚本 第 ${startEp} - ${endEp} 集。
     频道：${mode === 'male' ? '男频' : '女频'}
 
+    【核心指令：抗 AI 痕迹与拟人化策略】：
+    1. **用词随机化**：禁止使用“于是”、“竟然”、“不仅如此”、“与此同时”、“但是”等标准 AI 逻辑词。尝试使用更具画面感的动词（如：猛地一滞、嘴角微抽）或更随意的口语引导。
+    2. **标点动力学**：禁止只使用逗号和句号。大量引入省略号(...)表示迟疑、破折号(——)表示思绪中断或反转、感叹号(!)增强冲击力。模仿人类写作时的高低起伏。
+    3. **句式异构**：打破平铺直叙。采用“长句渲染背景+短句爆发动作”的组合。例如：不要写“他很生气地推开了门”，要写“门砰的一声，被那股按捺不住的劲头直接撞在了墙上。他进来了。”
+    4. **细节噪点**：在推进剧情时，偶尔加入 1-2 处非核心动作描写（如：拍了拍袖口的灰、瞥了一眼窗外的枯枝），这种非逻辑性的“生活感”是突破 AI 检测的关键。
+
     【当前执行进度与关联约束】：
-    1. **阶段定位**：请从 <STORY_OUTLINE> 的【剧本进度路线图】中找到涵盖第 ${startEp}-${endEp} 集的阶段。
-    2. **进度锁死**：你现在的任务是极度细腻地展开该阶段对应的剧情。**严禁**提及或推进后续阶段的任何情节。
-    3. **扩容系数**：为了保证 60-80 集的体量，大纲中的一个细微剧情点（哪怕一句话），你必须扩充为至少 3-5 场完整的戏。
+    1. **阶段定位**：从 <STORY_OUTLINE> 的路线图中确定当前集数对应的原著范围，严禁跨段。
+    2. **扩容系数**：将大纲的一个动作点拆解为多维度的视觉描写，确保节奏扎实。
 
-    【输入隔离与职责】：
-    - <ORIGINAL_SOURCE>：提供本集的核心细节。
-    - <STORY_OUTLINE>：包含全局路线图和剧情框架。
-    - <PREVIOUS_CONTEXT>：提供上下文衔接状态。
-    - <STYLE_AND_LAYOUT>：文笔与格式参考。
-
-    <ORIGINAL_SOURCE>
-    ${originalText.substring(0, 15000)}
-    </ORIGINAL_SOURCE>
-
-    <STORY_OUTLINE>
-    ${outlineText}
-    </STORY_OUTLINE>
-
-    <PREVIOUS_CONTEXT>
-    ${contextHistory}
-    </PREVIOUS_CONTEXT>
-
+    【输入资料】：
+    <ORIGINAL_SOURCE>${originalText.substring(0, 15000)}</ORIGINAL_SOURCE>
+    <STORY_OUTLINE>${outlineText}</STORY_OUTLINE>
+    <PREVIOUS_CONTEXT>${contextHistory}</PREVIOUS_CONTEXT>
     <STYLE_AND_LAYOUT>
-    文笔风格：${styleRefText}
-    排版模版：${layoutRefText}
+    参考文笔：${styleRefText || '人类化自然叙事'}
+    参考排版：${layoutRefText}
     </STYLE_AND_LAYOUT>
 
-    【脚本生成准则】：
-    1. **慢节奏叙事**：禁止使用“很快”、“转眼间”、“于是”等总结性词汇。必须写出具体的环境压抑感、角色的眼神交流、台词间的拉扯。
-    2. **上下文锚定**：分析 <PREVIOUS_CONTEXT> 最后一段，确保第 ${startEp} 集第一秒无缝连接。
-    3. **去AI痕迹**：多用动词和神态描写，不要写类似“他意识到自己应该...”这种心理说明，要写出他具体的动作。
-
-    输出中文纯文本脚本。
+    请根据以上“拟人化写作”策略，输出第 ${startEp} - ${endEp} 集脚本。
   `;
 
   const response = await ai.models.generateContent({
     model,
     contents: prompt,
     config: {
-      temperature: 0.9,
-      topP: 0.95,
+      temperature: 0.95, // 提高采样随机性
+      topP: 0.98,
+      topK: 40,
       thinkingConfig: { thinkingBudget: 8000 }
     }
   });
